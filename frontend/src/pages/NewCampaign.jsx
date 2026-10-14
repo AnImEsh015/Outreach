@@ -1,0 +1,342 @@
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../api'
+import DuplicateWarning from '../components/DuplicateWarning'
+
+export default function NewCampaign() {
+  const navigate = useNavigate()
+  const initialForm = {
+    name: '',
+    email_list: '',
+    goal: '',
+    additional_context: '',
+  }
+  const [form, setForm] = useState(initialForm)
+  const [parsedCount, setParsedCount] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState('')
+
+  const [parsedEmails, setParsedEmails] = useState([])
+  const [duplicates, setDuplicates] = useState([])
+  const [skippedEmails, setSkippedEmails] = useState(new Set())
+  const [showWarning, setShowWarning] = useState(false)
+  const [parseSummary, setParseSummary] = useState('')
+
+  const DRAFT_KEY = 'new_campaign_draft_v1'
+  const saveTimeoutRef = useRef(null)
+
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.form) {
+          setForm(parsed.form)
+          // re-run duplicate check if email_list present
+          if (parsed.form.email_list) checkDuplicates(parsed.form.email_list)
+        }
+        if (parsed?.skippedEmails) setSkippedEmails(new Set(parsed.skippedEmails))
+      }
+    } catch (e) { /* ignore */ }
+  }, [])
+
+  // Autosave draft (debounced)
+  useEffect(() => {
+    try {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        const payload = {
+          form,
+          skippedEmails: Array.from(skippedEmails || []),
+          // don't serialize large ephemeral arrays like duplicates/parsers
+        }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
+      }, 1000)
+    } catch (e) { }
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current) }
+  }, [form, skippedEmails])
+
+  // Save immediately on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        const payload = { form, skippedEmails: Array.from(skippedEmails || []) }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
+      } catch (e) { }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [form, skippedEmails])
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const extractEmails = (text) => {
+    const rawEmails = text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi
+    const validEmails = []
+
+    rawEmails.forEach(str => {
+      const match = str.match(emailRegex)
+      if (match) {
+        validEmails.push({ email: match[0], raw: str })
+      }
+    })
+    return validEmails
+  }
+
+  const checkDuplicates = async (rawText) => {
+    const emails = extractEmails(rawText)
+    setParsedEmails(emails)
+    if (emails.length === 0) {
+      setParseSummary('')
+      setShowWarning(false)
+      return
+    }
+
+    try {
+      const res = await api.post('/campaign/check-duplicates', {
+        emails: emails.map(e => e.email)
+      })
+
+      const dups = res.data.duplicates || []
+
+      if (dups.length > 0) {
+        setDuplicates(dups)
+        setShowWarning(true)
+      } else {
+        setShowWarning(false)
+      }
+
+      updateSummary(emails.length, dups.length, 0)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const updateSummary = (total, dupsCount, skippedCount) => {
+    const newCount = total - dupsCount
+    const included = dupsCount - skippedCount
+    setParseSummary(`✓ ${total} valid emails parsed · ${dupsCount} already contacted (${skippedCount} skipped, ${included} included) · ${newCount} new emails`)
+  }
+
+  const handleDecision = (email, action) => {
+    if (action === 'skip') {
+      const newSkipped = new Set(skippedEmails)
+      newSkipped.add(email)
+      setSkippedEmails(newSkipped)
+
+      setForm(f => ({ ...f, email_list: f.email_list.split(/[\n,]+/).filter(l => !l.includes(email)).join('\n') }))
+
+      setDuplicates(prev => prev.filter(d => d.email !== email))
+      updateSummary(parsedEmails.length, duplicates.length - 1, newSkipped.size)
+    } else if (action === 'include') {
+      setDuplicates(prev => prev.filter(d => d.email !== email))
+    }
+
+    if (duplicates.length <= 1) setShowWarning(false)
+  }
+
+  const onSkipAll = () => {
+    const allDups = new Set([...skippedEmails, ...duplicates.map(d => d.email)])
+    setSkippedEmails(allDups)
+
+    const dupEmailsList = duplicates.map(d => d.email)
+    setForm(f => ({
+      ...f,
+      email_list: f.email_list.split(/[\n,]+/).filter(l => !dupEmailsList.some(e => l.includes(e))).join('\n')
+    }))
+
+    setDuplicates([])
+    setShowWarning(false)
+    updateSummary(parsedEmails.length, 0, allDups.size)
+  }
+
+  const onIncludeAll = () => {
+    setDuplicates([])
+    setShowWarning(false)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      // Step 1: Create campaign
+      const createRes = await api.post('/campaign/new', form)
+      const { campaign_id, recipients_count } = createRes.data
+      setParsedCount(recipients_count)
+
+      // Step 2: Generate emails
+      setGenerating(true)
+      const genRes = await api.post(`/campaign/${campaign_id}/generate`)
+
+      if (genRes.data.errors?.length > 0) {
+        setError(
+          `Generated with ${genRes.data.errors.length} error(s). You can regenerate individual emails in Preview.`
+        )
+      }
+
+      // Navigate to preview
+      navigate(`/campaign/${campaign_id}/preview`)
+      // Clear saved draft on successful creation
+      try { localStorage.removeItem(DRAFT_KEY) } catch (e) { }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create campaign')
+      setLoading(false)
+      setGenerating(false)
+    }
+  }
+
+  // Show generating state
+  if (generating) {
+    return (
+      <div id="generating-screen" className="max-w-2xl mx-auto text-center py-16">
+        <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Generating Emails...
+        </h2>
+        <p className="text-gray-500 text-sm">
+          Creating unique, personalized emails for {parsedCount} recipient{parsedCount !== 1 ? 's' : ''}.
+          This may take a minute.
+        </p>
+        {error ? (
+          <p className="mt-4 text-amber-600 text-sm">{error}</p>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div id="new-campaign-page" className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">New Campaign</h1>
+
+      {error ? (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+          {error}
+        </div>
+      ) : null}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Campaign Name */}
+        <div>
+          <label htmlFor="campaign-name" className="block text-sm font-medium text-gray-700 mb-1">
+            Campaign Name *
+          </label>
+          <input
+            id="campaign-name"
+            type="text"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
+            placeholder="e.g., Summer Internship - ML Companies June 2026"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
+
+        {/* Email List */}
+        <div>
+          <label htmlFor="email-list" className="block text-sm font-medium text-gray-700 mb-1">
+            Email List * <span className="text-gray-400 font-normal">(paste emails in any format)</span>
+          </label>
+          <textarea
+            id="email-list"
+            name="email_list"
+            value={form.email_list}
+            onChange={handleChange}
+            onBlur={(e) => checkDuplicates(e.target.value)}
+            required
+            rows={6}
+            placeholder={"john@company.com\njane.doe@startup.io, mark@techcorp.com\nAlice <alice@acme.com>\nBob Smith - bob@smith.com"}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+
+          <div className="flex justify-between items-center mt-1">
+            <p className="text-xs text-gray-500">
+              Supports: one per line, comma-separated, space-separated, Name &lt;email&gt;, Name - email
+            </p>
+            <button type="button" onClick={() => checkDuplicates(form.email_list)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 px-2 py-1 rounded transition-colors border border-indigo-100">Check Duplicates</button>
+          </div>
+
+          {parseSummary ? (
+            <div className="mt-3 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-md border border-emerald-100 flex items-center gap-1.5">
+              {parseSummary}
+            </div>
+          ) : null}
+
+          {showWarning && duplicates.length > 0 && (
+            <DuplicateWarning
+              duplicates={duplicates}
+              onSkipAll={onSkipAll}
+              onIncludeAll={onIncludeAll}
+              onPerRecipientDecision={handleDecision}
+            />
+          )}
+        </div>
+
+        {/* Campaign Goal */}
+        <div>
+          <label htmlFor="campaign-goal" className="block text-sm font-medium text-gray-700 mb-1">
+            Campaign Goal / Description *
+          </label>
+          <textarea
+            id="campaign-goal"
+            name="goal"
+            value={form.goal}
+            onChange={handleChange}
+            required
+            rows={3}
+            placeholder="e.g., Send emails asking for a summer internship in machine learning or chemical engineering roles"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
+
+        {/* Additional Context */}
+        <div>
+          <label htmlFor="additional-context" className="block text-sm font-medium text-gray-700 mb-1">
+            Additional Context <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            id="additional-context"
+            name="additional_context"
+            value={form.additional_context}
+            onChange={handleChange}
+            rows={2}
+            placeholder="e.g., Mention that I'm available from May to July 2026"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            id="create-campaign-btn"
+            type="submit"
+            disabled={loading}
+            className="flex-1 py-2.5 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Creating...' : 'Create Campaign & Generate Emails'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setForm(initialForm)
+              setParsedEmails([])
+              setDuplicates([])
+              setSkippedEmails(new Set())
+              setParseSummary('')
+              try { localStorage.removeItem(DRAFT_KEY) } catch (e) { }
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Clear Draft
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

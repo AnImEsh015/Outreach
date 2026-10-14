@@ -123,7 +123,7 @@ export default function Navbar() {
 
               {/* Live Dropdown */}
               {dropdownVisible && results.length > 0 && (
-                <div ref={dropdownRef} className="absolute top-full mt-1 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                <div ref={dropdownRef} className="absolute top-full mt-1.5 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto animate-scale-in">
                   {results.slice(0, 6).map(r => (
                     <div
                       key={r.id}

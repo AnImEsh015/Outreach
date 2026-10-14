@@ -94,19 +94,19 @@ export default function Settings() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
 
       {flash ? (
-        <div className="flash-message mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm">
+        <div className="flash-message mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm animate-slide-down">
           {flash}
         </div>
       ) : null}
 
       {error ? (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm animate-slide-down">
           {error}
         </div>
       ) : null}
 
       {testStatus.message ? (
-        <div className={`mb-4 p-3 rounded-md text-sm ${testStatus.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+        <div className={`mb-4 p-3 rounded-md text-sm animate-slide-down ${testStatus.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
           {testStatus.type === 'success' ? '✓ ' : '✗ '}{testStatus.message}
         </div>
       ) : null}

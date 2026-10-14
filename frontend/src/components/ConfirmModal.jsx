@@ -4,7 +4,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/40"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200"
         onClick={onCancel}
         aria-hidden="true"
       />
@@ -12,7 +12,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
         id="confirm-modal"
         role="dialog"
         aria-modal="true"
-        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-scale-in"
       >
         <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
         <p className="text-gray-600 text-sm mb-6">{message}</p>

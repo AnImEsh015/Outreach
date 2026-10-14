@@ -63,15 +63,16 @@ export default function SendProgress({ isFollowUp = false }) {
         />
 
         {progress.status === 'sending' ? (
-          <div className="mt-4 text-sm text-gray-600">
-            <p>
-              Currently sending to:{' '}
-              <span className="font-medium text-gray-900">
-                {progress.current_email || '...'}
+          <div className="mt-4 text-sm text-gray-600 animate-slide-down">
+            <p className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-600"></span>
               </span>
+              <span>Currently sending to: <strong className="text-gray-900 font-medium">{progress.current_email || '...'}</strong></span>
             </p>
             {remaining > 0 ? (
-              <p className="mt-1 text-gray-400">
+              <p className="mt-1 text-gray-400 pl-4.5">
                 ~{etaMinutes} minute{etaMinutes !== 1 ? 's' : ''} remaining
               </p>
             ) : null}
@@ -79,7 +80,7 @@ export default function SendProgress({ isFollowUp = false }) {
         ) : null}
 
         {progress.status === 'complete' ? (
-          <div className="mt-4">
+          <div className="mt-4 animate-scale-in">
             <div className="flex gap-4 text-sm">
               <span className="text-green-600 font-medium">
                 ✓ {sentCount} sent
@@ -109,7 +110,7 @@ export default function SendProgress({ isFollowUp = false }) {
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-80 overflow-y-auto">
             {[...progress.log].reverse().map((entry, i) => (
-              <div key={i} className="px-4 py-2.5 flex items-center justify-between">
+              <div key={i} className="px-4 py-2.5 flex items-center justify-between transition-colors hover:bg-gray-50/50">
                 <div className="flex items-center gap-2">
                   {entry.status === 'sent' ? (
                     <span className="w-2 h-2 rounded-full bg-green-500" />

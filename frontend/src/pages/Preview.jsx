@@ -164,7 +164,9 @@ export default function Preview({ isFollowUp = false }) {
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="bg-white border border-gray-200 rounded-lg p-4"
+            className={`bg-white border border-gray-200 rounded-lg p-4 interactive-card shadow-sm hover:shadow-md transition-all duration-200 ${
+              regenerating[item.id] ? 'opacity-70' : ''
+            }`}
           >
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -184,9 +186,16 @@ export default function Preview({ isFollowUp = false }) {
                 <button
                   onClick={() => handleRegenerate(item, index)}
                   disabled={regenerating[item.id]}
-                  className="text-xs px-3 py-1 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  className="text-xs px-3 py-1 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
                 >
-                  {regenerating[item.id] ? 'Regenerating...' : '↻ Regenerate'}
+                  {regenerating[item.id] ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-gray-400 border-t-indigo-600 rounded-full animate-spin inline-block" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    '↻ Regenerate'
+                  )}
                 </button>
               ) : null}
             </div>
@@ -199,7 +208,7 @@ export default function Preview({ isFollowUp = false }) {
                 value={item.subject || ''}
                 onChange={(e) => handleEdit(index, 'subject', e.target.value)}
                 onBlur={() => saveEdit(item, index)}
-                className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-150"
               />
             </div>
 
@@ -211,7 +220,7 @@ export default function Preview({ isFollowUp = false }) {
                 onChange={(e) => handleEdit(index, 'email_body', e.target.value)}
                 onBlur={() => saveEdit(item, index)}
                 rows={8}
-                className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm font-mono leading-relaxed focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-y"
+                className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm font-mono leading-relaxed focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-y transition-all duration-150"
               />
             </div>
           </div>

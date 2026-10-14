@@ -5,7 +5,7 @@ export default function DuplicateWarning({ duplicates, onSkipAll, onIncludeAll, 
   if (!duplicates || duplicates.length === 0) return null
 
   return (
-    <div className="mt-4 border border-amber-200 rounded-lg bg-amber-50 shadow-sm overflow-hidden text-sm">
+    <div className="mt-4 border border-amber-200 rounded-lg bg-amber-50 shadow-sm overflow-hidden text-sm animate-slide-down">
       <div className="bg-amber-100 px-4 py-3 border-b border-amber-200 flex items-center gap-2">
         <span className="text-xl">⚠️</span>
         <span className="font-semibold text-amber-900">{duplicates.length} email{duplicates.length > 1 ? 's have' : ' has'} been contacted before</span>

@@ -183,12 +183,12 @@ export default function ContactHistoryPanel({ email, isOpen, onClose, onStatusUp
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-gray-900 bg-opacity-30 transition-opacity" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300" onClick={onClose} />
       
       {/* Slide-in Drawer */}
       <div 
         ref={panelRef}
-        className="relative w-full max-w-md bg-white h-full shadow-xl flex flex-col overflow-y-auto transform transition-transform translate-x-0"
+        className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-y-auto animate-drawer-in"
       >
         <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
           <h2 className="text-lg font-semibold text-gray-900">Contact History</h2>

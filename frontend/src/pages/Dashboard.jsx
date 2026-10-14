@@ -93,7 +93,7 @@ export default function Dashboard() {
               <Link
                 key={c.id}
                 to={`/campaign/${c.id}`}
-                className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                className="block px-4 py-3 hover:bg-indigo-50/40 hover:translate-x-1 transition-all duration-200"
               >
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-900">{c.name}</span>
@@ -115,18 +115,18 @@ export default function Dashboard() {
 
 function StatCard({ id, label, value, color }) {
   const colors = {
-    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    green: 'bg-green-50 text-green-700 border-green-200',
-    red: 'bg-red-50 text-red-700 border-red-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    gray: 'bg-gray-50 text-gray-700 border-gray-200',
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-300',
+    green: 'bg-green-50 text-green-700 border-green-200 hover:border-green-300',
+    red: 'bg-red-50 text-red-700 border-red-200 hover:border-red-300',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300',
+    gray: 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300',
   }
 
   return (
-    <div id={id} className={`rounded-lg border p-4 ${colors[color]}`}>
+    <div id={id} className={`rounded-lg border p-4 interactive-card cursor-default ${colors[color]}`}>
       <div className="text-sm font-medium opacity-80">{label}</div>
-      <div className="text-3xl font-bold mt-1">{value}</div>
+      <div className="text-3xl font-bold mt-1 tracking-tight">{value}</div>
     </div>
   )
 }

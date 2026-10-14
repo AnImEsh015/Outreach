@@ -242,11 +242,11 @@ function AnalysisCard({ title, items, type }) {
   if (!items || items.length === 0) return null
   
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm interactive-card">
       <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">{title}</h3>
       <div className="space-y-3">
         {items.map((item, i) => (
-          <div key={i} className="border-l-2 border-indigo-100 pl-3">
+          <div key={i} className="border-l-2 border-indigo-100 pl-3 hover:border-indigo-400 transition-colors">
             <h4 className="text-sm font-bold text-gray-800">
               {type === 'project' ? item.title : `${item.role} @ ${item.organization}`}
             </h4>
@@ -275,7 +275,7 @@ function Field({ label, name, value, onChange, placeholder, required }) {
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all duration-150"
       />
     </div>
   )

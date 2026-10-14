@@ -165,7 +165,7 @@ export default function Search() {
               <div 
                 key={r.id} 
                 onClick={() => setSelectedEmail(r.email)}
-                className="border border-gray-200 bg-white rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors shadow-sm"
+                className="border border-gray-200 bg-white rounded-lg p-4 interactive-card shadow-sm hover:shadow-md cursor-pointer transition-all duration-150"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -230,7 +230,7 @@ export default function Search() {
           </button>
           
           {showReengagement ? (
-            <div className="pl-6 border-l-2 border-indigo-100 space-y-4 pt-2">
+            <div className="pl-6 border-l-2 border-indigo-100 space-y-4 pt-2 animate-slide-down">
               <p className="text-sm text-gray-500 mb-4">
                 Emailed 14–60 days ago · No reply or Check Back · No follow-up sent
               </p>

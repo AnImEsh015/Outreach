@@ -216,7 +216,7 @@ export default function NewCampaign() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">New Campaign</h1>
 
       {error ? (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm animate-slide-down">
           {error}
         </div>
       ) : null}
@@ -235,7 +235,7 @@ export default function NewCampaign() {
             onChange={handleChange}
             required
             placeholder="e.g., Summer Internship - ML Companies June 2026"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-150"
           />
         </div>
 
@@ -253,7 +253,7 @@ export default function NewCampaign() {
             required
             rows={6}
             placeholder={"john@company.com\njane.doe@startup.io, mark@techcorp.com\nAlice <alice@acme.com>\nBob Smith - bob@smith.com"}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-150"
           />
 
           <div className="flex justify-between items-center mt-1">
@@ -264,7 +264,7 @@ export default function NewCampaign() {
           </div>
 
           {parseSummary ? (
-            <div className="mt-3 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-md border border-emerald-100 flex items-center gap-1.5">
+            <div className="mt-3 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-md border border-emerald-100 flex items-center gap-1.5 animate-slide-down">
               {parseSummary}
             </div>
           ) : null}

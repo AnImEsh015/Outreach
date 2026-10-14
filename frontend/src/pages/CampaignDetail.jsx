@@ -302,7 +302,7 @@ function RecipientRow({ recipient, isExpanded, isReplyExpanded, onToggle, onTogg
       {/* Reply pasting panel */}
       {isReplyExpanded && (
         <tr>
-          <td colSpan={4} className="px-4 py-3 bg-indigo-50 border-b border-gray-200">
+          <td colSpan={4} className="px-4 py-3 bg-indigo-50/70 border-b border-gray-200 animate-slide-down">
             <ReplyPanel recipient={r} updateLocal={updateLocal} isAutoExcluded={isAutoExcluded} />
           </td>
         </tr>
@@ -311,7 +311,7 @@ function RecipientRow({ recipient, isExpanded, isReplyExpanded, onToggle, onTogg
       {/* Original email viewing panel */}
       {isExpanded ? (
         <tr>
-          <td colSpan={4} className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <td colSpan={4} className="px-4 py-3 bg-gray-50/80 border-b border-gray-200 animate-slide-down">
             <div className="text-xs text-gray-500 mb-1">Subject: <span className="text-gray-900">{r.subject}</span></div>
             <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-white p-3 rounded border border-gray-200">
               {r.email_body}

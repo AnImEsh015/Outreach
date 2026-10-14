@@ -10,7 +10,7 @@ import time
 from groq import Groq
 from utils import resolve_company_name
 
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 SYSTEM_PROMPT = """You are helping a college student write personalised cold outreach emails for internship/job opportunities.
 These emails will be sent directly from the student's Gmail. They must feel like real, human-written emails, not templates, not cover letters, not LinkedIn messages. 
@@ -406,12 +406,22 @@ def _call_groq(system_prompt, user_prompt, api_key, retries=4, model=GROQ_MODEL)
             last_error = e
             err_str = str(e).upper()
             FALLBACK_MODELS = [
+                "openai/gpt-oss-120b",
+                "openai/gpt-oss-20b",
+                "qwen/qwen3.8-27b",
                 "llama-3.1-8b-instant",
                 "llama-3.3-70b-versatile",
             ]
 
-            # If daily limit hit, switch to fallback model
-            if "TOKENS PER DAY" in err_str or "REQUESTS PER DAY" in err_str or "TOKENS PER MINUTE" in err_str:
+            # If daily limit hit or model not found, switch to fallback model
+            if (
+                "TOKENS PER DAY" in err_str
+                or "REQUESTS PER DAY" in err_str
+                or "TOKENS PER MINUTE" in err_str
+                or "MODEL_NOT_FOUND" in err_str
+                or "DOES NOT EXIST" in err_str
+                or "NOT HAVE ACCESS" in err_str
+            ):
                 try:
                     current_index = FALLBACK_MODELS.index(model)
                 except ValueError:
@@ -419,10 +429,10 @@ def _call_groq(system_prompt, user_prompt, api_key, retries=4, model=GROQ_MODEL)
 
                 if current_index < len(FALLBACK_MODELS) - 1:
                     next_model = FALLBACK_MODELS[current_index + 1]
-                    print(f"Rate limit hit on {model}. Trying next model: {next_model}...")
+                    print(f"Model {model} unavailable/limited. Trying next model: {next_model}...")
                     return _call_groq(system_prompt, user_prompt, api_key, retries, model=next_model)
 
-                raise Exception("All Groq models exhausted due to rate limits. Try again later.")
+                raise Exception("All Groq models exhausted or unavailable. Try again later.")
 
             # If transient rate limit or 503, wait with exponential backoff
             if "429" in err_str or "RATE_LIMIT" in err_str or "503" in err_str or "UNAVAILABLE" in err_str:

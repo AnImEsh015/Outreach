@@ -2,7 +2,13 @@ import json
 import pdfplumber
 from groq import Groq
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+RESUME_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+]
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extract all text from the resume PDF."""
@@ -22,14 +28,14 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 def parse_resume_with_groq(api_key: str, resume_text: str) -> dict:
     """
     Use Groq to parse raw resume text into structured data.
-    Returns a dict with projects, experience, education, achievements, skills.
+    Tries primary model and cascades to fallback models if model is not available.
     """
     client = Groq(api_key=api_key)
 
     system_prompt = """You are a resume parser. Given raw resume text, extract structured information.
 Return ONLY a valid JSON object with exactly these keys:
 - "name": full name of the candidate (string)
-- "education": list of objects with keys "degree", "institution", "year" (e.g. B.Tech Chemical Engineering, NIT Durgapur, 2026)
+- "education": list of objects with keys "degree", "institution", "year" (e.g. B.Tech Mechanical Engineering, NIT Durgapur, 2026)
 - "projects": list of objects with keys "title" and "description" (1–2 sentence description of what was built and the tech used)
 - "experience": list of objects with keys "role", "organization", "duration", "description" (internships, research, jobs)
 - "achievements": list of strings (awards, rankings, competitions, publications)
@@ -48,19 +54,30 @@ Rules:
 
 {resume_text}"""
 
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt}
-        ],
-        temperature=0.1,  # Low temperature for accurate extraction
-        response_format={"type": "json_object"}
-    )
+    last_error = None
+    for model in RESUME_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt}
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"}
+            )
+            raw = response.choices[0].message.content
+            parsed = json.loads(raw)
+            return parsed
+        except Exception as e:
+            last_error = e
+            err_msg = str(e).lower()
+            if "model_not_found" in err_msg or "does not exist" in err_msg or "rate_limit" in err_msg:
+                print(f"Model {model} failed ({e}), trying next fallback model...")
+                continue
+            raise e
 
-    raw = response.choices[0].message.content
-    parsed = json.loads(raw)
-    return parsed
+    raise Exception(f"All models failed for resume parsing. Last error: {last_error}")
 
 
 def parse_resume(pdf_path: str, groq_api_key: str) -> dict:

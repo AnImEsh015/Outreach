@@ -22,39 +22,53 @@ def resolve_company_name(domain: str, groq_api_key: str) -> str:
 
     fallback = domain_clean.split(".")[0].replace("-", " ").replace("_", " ").title()
 
-    try:
-        client = Groq(api_key=groq_api_key)
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a company name resolver. Given a website domain, return the official "
-                        "company/organization name. Use your training knowledge first. If the company "
-                        "is not well-known, intelligently parse the domain — e.g. 'nisargaits.com' → "
-                        "'Nisarga IT Solutions', 'techaheadcorp.com' → 'TechAhead Corp', "
-                        "'logicboots.com' → 'LogicBoots'. "
-                        "Return ONLY valid JSON: {\"company_name\": \"Name Here\"}. Never return null."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"What is the official company name for the domain: {domain_clean}"
-                }
-            ],
-            temperature=0.1,
-            response_format={"type": "json_object"}
-        )
+    COMPANY_MODELS = [
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant",
+    ]
 
-        result = json.loads(response.choices[0].message.content)
-        company_name = result.get("company_name", fallback).strip()
+    client = Groq(api_key=groq_api_key)
+    company_name = None
 
-        if not company_name or len(company_name) > 60:
-            company_name = fallback
+    for m in COMPANY_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=m,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a company name resolver. Given a website domain, return the official "
+                            "company/organization name. Use your training knowledge first. If the company "
+                            "is not well-known, intelligently parse the domain — e.g. 'nisargaits.com' → "
+                            "'Nisarga IT Solutions', 'techaheadcorp.com' → 'TechAhead Corp', "
+                            "'logicboots.com' → 'LogicBoots'. "
+                            "Return ONLY valid JSON: {\"company_name\": \"Name Here\"}. Never return null."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": f"What is the official company name for the domain: {domain_clean}"
+                    }
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"}
+            )
 
-    except Exception as e:
-        print(f"Company name lookup failed for {domain_clean}: {e}")
+            result = json.loads(response.choices[0].message.content)
+            extracted = result.get("company_name", "").strip()
+            if extracted and len(extracted) <= 60:
+                company_name = extracted
+                break
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "model_not_found" in err_msg or "does not exist" in err_msg:
+                continue
+            print(f"Company name lookup model {m} failed for {domain_clean}: {e}")
+
+    if not company_name:
         company_name = fallback
 
     _company_cache[domain_clean] = company_name
